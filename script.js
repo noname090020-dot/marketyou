@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Прямой вызов requestContact (отправляет contact боту)
         Telegram.WebApp.requestContact((contact) => {
             console.log('Contact callback fired, contact object:', contact);
-            if (contact) {  // Успех = callback сработал (бот получит контакт)
+            if (contact) {  // Оптимистичный подход: callback сработал = успех (бот получит контакт)
                 console.log('Contact granted, proceeding to code input');
                 phoneInput.value = contact.phone_number || 'Номер отправлен боту';  // Fallback, если phone_number undefined
                 phoneInput.classList.remove('hidden');

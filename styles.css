@@ -179,6 +179,12 @@ header h1 {
     text-align: center;
 }
 
+.status-msg {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1em;
+    margin: 1rem 0;
+}
+
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-5px); }
