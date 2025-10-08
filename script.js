@@ -25,29 +25,30 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         currentStep = 'contact';
 
-        tg.requestContact()
-            .then((contact) => {
-                console.log('Contact received:', contact);
-                if (contact && contact.phone_number) {
-                    phoneInput.value = contact.phone_number;
-                    phoneInput.classList.remove('hidden');
-                    hideLoading();
-                    submitBtn.classList.remove('hidden');
-                    submitBtn.textContent = 'Отправить номер';
-                    statusMsg.textContent = 'Номер получен. Отправляем...';
-                    currentStep = 'phone';
-                    tg.HapticFeedback.impactOccurred('light');
-                } else {
-                    throw new Error('Contact denied');
-                }
-            })
-            .catch((error) => {
-                console.error('Request contact error:', error);
+        // Прямой вызов requestContact с callback (фикс для SDK issue)
+        // @ts-ignore
+        Telegram.WebApp.requestContact((contact) => {
+            console.log('Contact received via direct callback:', contact);
+            if (contact && contact.phone_number) {
+                phoneInput.value = contact.phone_number;
+                phoneInput.classList.remove('hidden');
                 hideLoading();
-                errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
-                errorMsg.classList.remove('hidden');
-                setTimeout(resetForm, 2000);
-            });
+                submitBtn.classList.remove('hidden');
+                submitBtn.textContent = 'Отправить номер';
+                statusMsg.textContent = 'Номер получен. Отправляем...';
+                currentStep = 'phone';
+                tg.HapticFeedback.impactOccurred('light');
+            } else {
+                console.error('Contact denied or empty');
+                throw new Error('Contact denied');
+            }
+        }, (error) => {
+            console.error('Request contact error:', error);
+            hideLoading();
+            errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
+            errorMsg.classList.remove('hidden');
+            setTimeout(resetForm, 2000);
+        });
     });
 
     submitBtn.addEventListener('click', () => {
