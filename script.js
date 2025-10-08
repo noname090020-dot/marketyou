@@ -22,11 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMsg.textContent = 'Поделитесь контактом для авторизации...';
         showLoading();
         currentStep = 'contact';
-        tg.requestContact((contact) => {
-            console.log('Contact callback, contact:', contact);
-            if (contact && contact.phone_number) {
-                console.log('Contact granted:', contact.phone_number);
-                phoneInput.value = contact.phone_number;
+        tg.requestContact((success, contact) => {
+            console.log('Contact callback, success:', success, 'contact:', contact);
+            if (success) {
+                console.log('Contact granted');
+                phoneInput.value = contact.phone_number || 'Номер отправлен боту';
                 phoneInput.classList.remove('hidden');
                 statusMsg.textContent = 'Номер отправлен. Ожидаем SMS...';
                 tg.HapticFeedback.impactOccurred('light');
@@ -41,18 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     hideLoading();
                 }, 2000);
             } else {
-                console.error('Contact denied or invalid');
+                console.error('Contact request failed');
                 hideLoading();
-                errorMsg.textContent = '❌ Разрешение отклонено. Попробуйте снова.';
+                errorMsg.textContent = '❌ Не удалось получить контакт. Попробуйте снова.';
                 errorMsg.classList.remove('hidden');
                 setTimeout(resetForm, 2000);
             }
-        }, (error) => {
-            console.error('Contact request error:', error);
-            hideLoading();
-            errorMsg.textContent = '❌ Ошибка запроса контакта. Попробуйте снова.';
-            errorMsg.classList.remove('hidden');
-            setTimeout(resetForm, 2000);
         });
     });
     submitBtn.addEventListener('click', () => {
